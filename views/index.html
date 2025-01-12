@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Barang</title>
+    <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Daftar Barang</h1>
+        <button id="tambahBarang">Tambah Barang</button>
+        <table id="barang-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Harga</th>
+                    <th>Merk</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="barang-list">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal untuk tambah dan update barang -->
+    <div id="barangModal" class="modal">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <h2 id="modalTitle">Tambah Barang</h2>
+            <form id="barangForm">
+                <input type="hidden" id="barangId">
+                <div>
+                    <label for="nama">Nama:</label>
+                    <input type="text" id="nama" required>
+                </div>
+                <div>
+                    <label for="harga">Harga:</label>
+                    <input type="number" id="harga" required>
+                </div>
+                <div>
+                    <label for="merek">Merk:</label>
+                    <input type="text" id="merek" required>
+                </div>
+                <button type="submit" id="submitBarang">Simpan</button>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script> 
+        let currentId = 1; 
+        async function loadBarang() {
+            try {
+                const response = await axios.get('http://localhost:5000/barang');
+                const data = response.data.barang;
+                const list = document.getElementById('barang-list');
+                list.innerHTML = '';
+
+                data.forEach(barang => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${currentId++}</td>
+                        <td>${barang.nama}</td>
+                        <td>Rp.${barang.harga}</td>
+                        <td>${barang.merek}</td>
+                        <td>
+                            <button class="update-btn" data-id="${barang.id}">Update</button>
+                            <button class="delete-btn" data-id="${barang.id}">Delete</button>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+
+                document.querySelectorAll('.update-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => updateBarang(e.target.dataset.id));
+                });
+
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => deleteBarang(e.target.dataset.id));
+                });
+            } catch (error) {
+                console.error('Error loading barang:', error);
+                alert('Gagal memuat daftar barang. Silakan coba lagi.');
+            }
+        }
+
+        document.getElementById('tambahBarang').addEventListener('click', () => {
+            showModal('Tambah Barang');
+            document.getElementById('barangForm').reset();
+            document.getElementById('barangId').value = '';
+        });
+
+        async function updateBarang(id) {
+            try {
+                const response = await axios.get(`http://localhost:5000/barang/${id}`);
+                const barang = response.data.data;
+                showModal('Update Barang');
+                document.getElementById('barangId').value = barang.id;
+                document.getElementById('nama').value = barang.nama;
+                document.getElementById('harga').value = barang.harga;
+                document.getElementById('merek').value = barang.merek;
+            } catch (error) {
+                console.error('Error loading barang:', error);
+                alert('Gagal memuat data barang. Silakan coba lagi.');
+            }
+        }
+
+        document.getElementById('barangForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('barangId').value;
+            const nama = document.getElementById('nama').value;
+            const harga = document.getElementById('harga').value;
+            const merek = document.getElementById('merek').value;
+
+            try {
+                if (id) {
+                    await axios.put(`http://localhost:5000/barang/${id}`, { nama, harga, merek });
+                    alert('Barang berhasil diupdate!');
+                } else {
+                    await axios.post('http://localhost:5000/barang', { nama, harga, merek });
+                    alert('Barang berhasil ditambah!');
+                }
+                closeModal();
+            } catch (error) {
+                console.error('Error saving barang:', error);
+                alert('Gagal menyimpan barang. Silakan coba lagi.');
+            }
+        });
+
+        async function deleteBarang(id) {
+            try {
+                const confirmDelete = confirm("Apakah Anda yakin ingin menghapus barang ini?");
+                if (confirmDelete) {
+                    await axios.delete(`http://localhost:5000/barang/${id}`);
+                    alert("Barang berhasil dihapus!");
+                }
+            } catch (error) {
+                console.error('Error deleting barang:', error);
+                alert('Gagal menghapus barang. Silakan coba lagi.');
+            }
+        }
+
+        // Modal 
+        function showModal(title) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('barangModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('barangModal').style.display = 'none';
+        }
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+
+        loadBarang();
+    </script>
+</body>
+</html>
